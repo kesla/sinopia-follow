@@ -1,0 +1,26 @@
+{
+  "name": "sinopia-follow",
+  "version": "0.0.0",
+  "description": "Keep a sinopia instance up to date with its proxy",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kesla/sinopia-follow.git"
+  },
+  "author": "David Björklund <david.bjorklund@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kesla/sinopia-follow/issues"
+  },
+  "homepage": "https://github.com/kesla/sinopia-follow#readme",
+  "dependencies": {
+    "follow": "^0.12.1",
+    "js-yaml": "^3.4.6",
+    "jsondown": "^0.1.1",
+    "lock": "^0.1.2",
+    "request": "^2.67.0"
+  }
+}
