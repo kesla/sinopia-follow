@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "Keep a sinopia instance up to date with its proxy",
   "main": "index.js",
+  "bin": {
+    "sinopia-follow": "cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
