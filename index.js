@@ -1,23 +1,23 @@
 'use strict';
 
-var YAML = require('js-yaml');
-var fs = require('fs');
-var path = require('path');
-var follow = require('follow');
-var jsondown = require('jsondown');
-var Lock = require('lock');
-var request = require('request');
+import YAML from 'js-yaml';
+import fs from 'fs';
+import path from 'path';
+import follow from 'follow';
+import jsondown from 'jsondown';
+import Lock from 'lock';
+import request from 'request';
 
 // make this configurable
-var config = YAML.safeLoad(fs.readFileSync(
+const config = YAML.safeLoad(fs.readFileSync(
   path.join(process.env.HOME, '.config/sinopia/config.yaml')
 ));
-var storage = config.storage;
-var db = jsondown(path.join(storage, '.sinopia-follow.json'));
-var lock = new Lock();
+const storage = config.storage;
+const db = jsondown(path.join(storage, '.sinopia-follow.json'));
+const lock = new Lock();
 
-var skimdb = 'https://skimdb.npmjs.com/registry';
-var registry = 'https://registry.npmjs.org';
+const skimdb = 'https://skimdb.npmjs.com/registry';
+const registry = 'https://registry.npmjs.org';
 
 db.open(function (err) {
   if (err) {
@@ -28,7 +28,7 @@ db.open(function (err) {
     if (err && !/Not Found/.test(err)) {
       throw err;
     }
-    var since = (seq || 'now').toString();
+    const since = (seq || 'now').toString();
 
     // follow
     follow({ db: skimdb, since: since }, function (err, data) {
@@ -42,11 +42,11 @@ db.open(function (err) {
 });
 
 function handleData (data) {
-  var name = data.id;
+  const name = data.id;
 
   lock('update-sequence', function (release) {
     console.log('Updating', data.seq, data.id);
-    var cb = release(function (err) {
+    const cb = release(function (err) {
       if (err) {
         throw err;
       }
