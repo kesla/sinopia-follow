@@ -1,23 +1,23 @@
 'use strict';
 
 import YAML from 'js-yaml';
-import fs from 'fs';
+import fs from 'then-fs';
 import path from 'path';
 import follow from './lib/follow';
 import setupDb from './lib/db';
-import fetch from 'node-fetch';
-
-// make this configurable
-const config = YAML.safeLoad(fs.readFileSync(
-  path.join(process.env.HOME, '.config/sinopia/config.yaml')
-));
-const storage = config.storage;
-const db = setupDb(path.join(storage, '.sinopia-follow.json'));
+import syncWithRegistry from './lib/sync-with-registry';
 
 const skimdb = 'https://skimdb.npmjs.com/registry';
 const registry = 'https://registry.npmjs.org';
 
 (async function () {
+  // make this configurable
+  const config = YAML.safeLoad(await fs.readFile(
+    path.join(process.env.HOME, '.config/sinopia/config.yaml')
+  ));
+  const { storage } = config;
+  const db = setupDb(path.join(storage, '.sinopia-follow.json'));
+
   try {
     await db.open();
     const since = await db.get('npmjs') || 'now';
@@ -25,8 +25,9 @@ const registry = 'https://registry.npmjs.org';
 
     while (true) {
       let { id, seq } = await getChange();
-      if (exists(id)) {
-        await syncWithRegistry(id);
+
+      if (await fs.exists(path.join(storage, id))) {
+        await syncWithRegistry({ id, config, registry });
       }
       await db.put('npmjs', String(seq));
       console.log('Sync', seq, id);
@@ -38,21 +39,3 @@ const registry = 'https://registry.npmjs.org';
     }
   }
 })();
-
-async function syncWithRegistry (id) {
-  const res = await fetch(registry + '/' + id);
-  const json = await res.json();
-  fs.writeFileSync(
-    path.join(storage, id, 'package.json'),
-    JSON.stringify(json, null, '\t')
-  );
-  console.log(id, 'updated');
-}
-
-function exists (name) {
-  try {
-    fs.statSync(path.join(storage, name));
-    return true;
-  } catch (e) {}
-  return false;
-}
