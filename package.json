@@ -2,9 +2,8 @@
   "name": "sinopia-follow",
   "version": "0.0.0",
   "description": "Keep a sinopia instance up to date with its proxy",
-  "main": "index.js",
   "bin": {
-    "sinopia-follow": "cli.js"
+    "sinopia-follow": "bin/cli.js"
   },
   "scripts": {
     "test": "semistandard | snazzy"
