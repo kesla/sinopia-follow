@@ -7,7 +7,7 @@
     "sinopia-follow": "cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "semistandard | snazzy"
   },
   "repository": {
     "type": "git",
@@ -31,5 +31,13 @@
     "jsondown": "^0.1.1",
     "node-fetch": "^1.3.3",
     "pify": "^2.3.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^5.0.0-beta6",
+    "semistandard": "^7.0.4",
+    "snazzy": "^2.0.1"
+  },
+  "semistandard": {
+    "parser": "babel-eslint"
   }
 }

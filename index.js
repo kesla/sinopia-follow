@@ -6,7 +6,6 @@ import path from 'path';
 import follow from './lib/follow';
 import setupDb from './lib/db';
 import fetch from 'node-fetch';
-import { Readable } from 'stream';
 
 // make this configurable
 const config = YAML.safeLoad(fs.readFileSync(
@@ -17,7 +16,6 @@ const db = setupDb(path.join(storage, '.sinopia-follow.json'));
 
 const skimdb = 'https://skimdb.npmjs.com/registry';
 const registry = 'https://registry.npmjs.org';
-let promise = Promise.resolve();
 
 (async function () {
   try {
@@ -36,7 +34,7 @@ let promise = Promise.resolve();
   } catch (err) {
     if (err) {
       console.log(err);
-      console.log(err.stack)
+      console.log(err.stack);
     }
   }
 })();
