@@ -3,9 +3,10 @@
 import YAML from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
-import follow from 'follow';
+import follow from './lib/follow';
 import setupDb from './lib/db';
 import fetch from 'node-fetch';
+import { Readable } from 'stream';
 
 // make this configurable
 const config = YAML.safeLoad(fs.readFileSync(
@@ -18,43 +19,36 @@ const skimdb = 'https://skimdb.npmjs.com/registry';
 const registry = 'https://registry.npmjs.org';
 let promise = Promise.resolve();
 
-db.open()
-  .then(() => { return db.get('npmjs'); })
-  .then((since = 'now') => {
-    return new Promise((resolve, reject) => {
-      follow({ db: skimdb, since: since.toString() }, (err, { id, seq }) => {
-        if (err) {
-          return reject(err);
-        }
+(async function () {
+  try {
+    await db.open();
+    const since = await db.get('npmjs') || 'now';
+    const getChange = follow({ db: skimdb, since: since.toString() });
 
-        if (exists(id)) {
-          promise = promise
-            .then(() => { return { id }; })
-            .then(syncWithRegistry);
-        }
+    while (true) {
+      let { id, seq } = await getChange();
+      if (exists(id)) {
+        await syncWithRegistry(id);
+      }
+      await db.put('npmjs', String(seq));
+      console.log('Sync', seq, id);
+    }
+  } catch (err) {
+    if (err) {
+      console.log(err);
+      console.log(err.stack)
+    }
+  }
+})();
 
-        promise = promise.then(() => {
-          console.log('Sync', seq, id);
-
-          return db.put('npmjs', String(seq));
-        });
-      });
-    });
-  })
-  .catch((err) => { throw err; });
-
-function syncWithRegistry ({ id }) {
-  return fetch(registry + '/' + id)
-    .then((res) => {
-      return res.json();
-    })
-    .then((json) => {
-      fs.writeFileSync(
-        path.join(storage, id, 'package.json'),
-        JSON.stringify(json, null, '\t')
-      );
-      console.log(id, 'updated');
-    });
+async function syncWithRegistry (id) {
+  const res = await fetch(registry + '/' + id);
+  const json = await res.json();
+  fs.writeFileSync(
+    path.join(storage, id, 'package.json'),
+    JSON.stringify(json, null, '\t')
+  );
+  console.log(id, 'updated');
 }
 
 function exists (name) {
