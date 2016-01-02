@@ -4,8 +4,8 @@ import YAML from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
 import follow from 'follow';
-import request from 'request';
 import setupDb from './lib/db';
+import fetch from 'node-fetch';
 
 // make this configurable
 const config = YAML.safeLoad(fs.readFileSync(
@@ -41,18 +41,18 @@ function handleData ({ id, seq }) {
       return resolve();
     }
 
-    request({ url: registry + '/' + id, json: true }, (err, res) => {
-      if (err) {
-        return reject(err);
-      }
-
-      console.log(id, 'updated');
-      fs.writeFileSync(
-        path.join(storage, id, 'package.json'),
-        JSON.stringify(res.body, null, '\t')
-      );
-      resolve();
-    });
+    return fetch(registry + '/' + id)
+      .then((res) => {
+        return res.json();
+      })
+      .then((json) => {
+        fs.writeFileSync(
+          path.join(storage, id, 'package.json'),
+          JSON.stringify(json, null, '\t')
+        );
+        console.log(id, 'updated');
+        resolve();
+      });
   })
   .then(() => {
     return db.put('npmjs', String(seq));
