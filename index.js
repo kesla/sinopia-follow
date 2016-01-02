@@ -4,71 +4,61 @@ import YAML from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
 import follow from 'follow';
-import jsondown from 'jsondown';
-import Lock from 'lock';
 import request from 'request';
+import setupDb from './lib/db';
 
 // make this configurable
 const config = YAML.safeLoad(fs.readFileSync(
   path.join(process.env.HOME, '.config/sinopia/config.yaml')
 ));
 const storage = config.storage;
-const db = jsondown(path.join(storage, '.sinopia-follow.json'));
-const lock = new Lock();
+const db = setupDb(path.join(storage, '.sinopia-follow.json'));
 
 const skimdb = 'https://skimdb.npmjs.com/registry';
 const registry = 'https://registry.npmjs.org';
+let p;
 
-db.open(function (err) {
-  if (err) {
-    throw err;
-  }
-
-  db.get('npmjs', function (err, seq) {
-    if (err && !/Not Found/.test(err)) {
-      throw err;
-    }
-    const since = (seq || 'now').toString();
-
-    // follow
-    follow({ db: skimdb, since: since }, function (err, data) {
-      if (err) {
-        throw err;
-      }
-
-      handleData(data);
+db.open()
+  .then(() => { return db.get('npmjs'); })
+  .then((since = 'now') => {
+    return new Promise((resolve, reject) => {
+      follow({ db: skimdb, since: since.toString() }, (err, data) => {
+        if (err) {
+          return reject(err);
+        }
+        p = Promise.resolve(p)
+          .then(() => { return data; })
+          .then(handleData);
+      });
     });
-  });
-});
+  })
+  .catch((err) => { throw err; });
 
-function handleData (data) {
-  const name = data.id;
-
-  lock('update-sequence', function (release) {
-    console.log('Updating', data.seq, data.id);
-    const cb = release(function (err) {
-      if (err) {
-        throw err;
-      }
-    });
-
-    if (!exists(data.id)) {
-      db.put('npmjs', String(data.seq), cb);
-      return;
+function handleData ({ id, seq }) {
+  console.log('Sync', seq, id);
+  return new Promise((resolve, reject) => {
+    if (!exists(id)) {
+      return resolve();
     }
 
-    request({ url: registry + '/' + name, json: true }, function (err, res) {
+    request({ url: registry + '/' + id, json: true }, (err, res) => {
       if (err) {
-        throw err;
+        return reject(err);
       }
 
-      console.log(name, 'updated');
+      console.log(id, 'updated');
       fs.writeFileSync(
-        path.join(storage, name, 'package.json'),
+        path.join(storage, id, 'package.json'),
         JSON.stringify(res.body, null, '\t')
       );
-      db.put('npmjs', String(data.seq), cb);
+      resolve();
     });
+  })
+  .then(() => {
+    return db.put('npmjs', String(seq));
+  })
+  .catch(function (err) {
+    throw err;
   });
 }
 
